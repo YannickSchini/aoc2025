@@ -4,7 +4,9 @@
       "Bash(mkdir:*)",
       "Bash(go run:*)",
       "Bash(go test:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(go vet:*)",
+      "Bash(gopls check:*)"
     ],
     "deny": [],
     "ask": []
