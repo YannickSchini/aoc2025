@@ -145,3 +145,153 @@ L41`
 		}
 	}
 }
+
+func TestCountAllZeroPositions(t *testing.T) {
+	dial := SafeDial{position: 50}
+
+	rotations := []Rotation{
+		{direction: Right, distance: 1000},
+	}
+
+	result := countAllZeroPositions(&dial, rotations)
+	expected := 10
+
+	if result != expected {
+		t.Errorf("countAllZeroPositions() = %d, want %d", result, expected)
+	}
+
+	// Verify the dial ended at the correct position
+	expectedFinalPos := 50
+	if dial.position != expectedFinalPos {
+		t.Errorf("Final position = %d, want %d", dial.position, expectedFinalPos)
+	}
+}
+
+func TestCountAllZeroPositionsMultipleRotations(t *testing.T) {
+	dial := SafeDial{position: 50}
+
+	rotations := []Rotation{
+		{direction: Left, distance: 68},
+		{direction: Left, distance: 30},
+		{direction: Right, distance: 48},
+		{direction: Left, distance: 5},
+		{direction: Right, distance: 60},
+		{direction: Left, distance: 55},
+		{direction: Left, distance: 1},
+		{direction: Left, distance: 99},
+		{direction: Right, distance: 14},
+		{direction: Left, distance: 82},
+	}
+
+	// Debug: track each rotation
+	totalCount := 0
+	for i, rot := range rotations {
+		startPos := dial.position
+		crossings := dial.move(rot.direction, rot.distance)
+		totalCount += crossings
+		t.Logf("Rotation %d: start=%d, dir=%v, dist=%d, end=%d, crossings=%d, total=%d",
+			i, startPos, rot.direction, rot.distance, dial.position, crossings, totalCount)
+	}
+
+	result := countAllZeroPositions(&SafeDial{position: 50}, rotations)
+	expected := 6
+
+	if result != expected {
+		t.Errorf("countAllZeroPositions() with multiple rotations = %d, want %d", result, expected)
+	}
+}
+
+func TestCountAllZeroPositionsDetailed(t *testing.T) {
+	tests := []struct {
+		name          string
+		startPos      int
+		rotation      Rotation
+		expectedCount int
+		expectedEnd   int
+	}{
+		{
+			name:          "position 50, R1000",
+			startPos:      50,
+			rotation:      Rotation{direction: Right, distance: 1000},
+			expectedCount: 10,
+			expectedEnd:   50,
+		},
+		{
+			name:          "position 50, L68",
+			startPos:      50,
+			rotation:      Rotation{direction: Left, distance: 68},
+			expectedCount: 1,
+			expectedEnd:   82,
+		},
+		{
+			name:          "position 82, L30",
+			startPos:      82,
+			rotation:      Rotation{direction: Left, distance: 30},
+			expectedCount: 0,
+			expectedEnd:   52,
+		},
+		{
+			name:          "position 0, R50",
+			startPos:      0,
+			rotation:      Rotation{direction: Right, distance: 50},
+			expectedCount: 0,
+			expectedEnd:   50,
+		},
+		{
+			name:          "position 0, R100",
+			startPos:      0,
+			rotation:      Rotation{direction: Right, distance: 100},
+			expectedCount: 1,
+			expectedEnd:   0,
+		},
+		{
+			name:          "position 99, R1",
+			startPos:      99,
+			rotation:      Rotation{direction: Right, distance: 1},
+			expectedCount: 1,
+			expectedEnd:   0,
+		},
+		{
+			name:          "position 1, L1",
+			startPos:      1,
+			rotation:      Rotation{direction: Left, distance: 1},
+			expectedCount: 0,
+			expectedEnd:   0,
+		},
+		{
+			name:          "position 0, L1",
+			startPos:      0,
+			rotation:      Rotation{direction: Left, distance: 1},
+			expectedCount: 0,
+			expectedEnd:   99,
+		},
+		{
+			name:          "position 5, L105",
+			startPos:      5,
+			rotation:      Rotation{direction: Left, distance: 105},
+			expectedCount: 2,
+			expectedEnd:   0,
+		},
+		{
+			name:          "position 50, L50",
+			startPos:      50,
+			rotation:      Rotation{direction: Left, distance: 50},
+			expectedCount: 0,
+			expectedEnd:   0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dial := SafeDial{position: tt.startPos}
+			count := dial.move(tt.rotation.direction, tt.rotation.distance)
+
+			if count != tt.expectedCount {
+				t.Errorf("Count = %d, want %d", count, tt.expectedCount)
+			}
+			if dial.position != tt.expectedEnd {
+				t.Errorf("End position = %d, want %d", dial.position, tt.expectedEnd)
+			}
+		})
+	}
+}

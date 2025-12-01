@@ -2,7 +2,6 @@
 package day01
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -18,14 +17,47 @@ type SafeDial struct {
 	position int
 }
 
-func (s *SafeDial) move(direction Direction, distance int) {
+func (s *SafeDial) move(direction Direction, distance int) int {
+	startPos := s.position
+
+	// Update position first
 	if direction == Left {
 		s.position -= distance
 	} else {
 		s.position += distance
 	}
+
+	// Count how many times we crossed through 0 (boundary crossings, not including final position)
+	// When wrapping, we cross boundaries. The number of full wraps is abs(position) / 100
+	var boundaryCrossings int
+	if direction == Right {
+		// Moving right: count crossings from 99→0
+		boundaryCrossings = (startPos + distance) / 100
+		if startPos > 0 {
+			boundaryCrossings -= startPos / 100
+		}
+	} else {
+		// Moving left: count crossings through 0 (going backwards past 0)
+		if distance > startPos {
+			// We wrap around
+			if startPos == 0 {
+				// Starting from 0: only count if we make full loops back to 0
+				boundaryCrossings = distance / 100
+			} else {
+				// Not starting from 0: count initial crossing plus full loops
+				remaining := distance - startPos
+				boundaryCrossings = 1 + remaining / 100
+			}
+		} else {
+			// No wrapping
+			boundaryCrossings = 0
+		}
+	}
+
 	// Wrap around 0-99 range
 	s.position = ((s.position % 100) + 100) % 100
+
+	return boundaryCrossings
 }
 
 type Rotation struct {
@@ -77,6 +109,28 @@ func countZeroPositions(dial *SafeDial, rotations []Rotation) int {
 	return count
 }
 
+func countAllZeroPositions(dial *SafeDial, rotations []Rotation) int {
+	count := 0
+	for _, rot := range rotations {
+		startPos := dial.position
+
+		// Count boundary crossings
+		crossings := dial.move(rot.direction, rot.distance)
+		count += crossings
+
+		// Also count if we stopped at 0, BUT only if we didn't cross a boundary to get there
+		// If we crossed a boundary and landed on 0, the crossing already counted it
+		if dial.position == 0 {
+			// Check if the crossing would have landed us on 0
+			if crossings == 0 || (startPos == 0 && crossings > 0) {
+				// Either no crossings (direct move to 0), or started from 0 and came back
+				count++
+			}
+		}
+	}
+	return count
+}
+
 func Part1(input string) int {
 	rotations := parseRotations(input)
 	dial := SafeDial{position: 50}
@@ -84,7 +138,7 @@ func Part1(input string) int {
 }
 
 func Part2(input string) int {
-	// TODO: Implement Part 2 solution
-	fmt.Println("Day 1, Part 2")
-	return 0
+	rotations := parseRotations(input)
+	dial := SafeDial{position: 50}
+	return countAllZeroPositions(&dial, rotations)
 }
