@@ -20,42 +20,40 @@ type SafeDial struct {
 func (s *SafeDial) move(direction Direction, distance int) int {
 	startPos := s.position
 
-	// Update position first
-	if direction == Left {
-		s.position -= distance
-	} else {
-		s.position += distance
-	}
-
-	// Count how many times we crossed through 0 (boundary crossings, not including final position)
-	// When wrapping, we cross boundaries. The number of full wraps is abs(position) / 100
-	var boundaryCrossings int
+	// Calculate the raw new position (can be negative or >= 100)
+	var rawNewPos int
 	if direction == Right {
-		// Moving right: count crossings from 99→0
-		boundaryCrossings = (startPos + distance) / 100
-		if startPos > 0 {
-			boundaryCrossings -= startPos / 100
-		}
+		rawNewPos = startPos + distance
 	} else {
-		// Moving left: count crossings through 0 (going backwards past 0)
-		if distance > startPos {
-			// We wrap around
-			if startPos == 0 {
-				// Starting from 0: only count if we make full loops back to 0
-				boundaryCrossings = distance / 100
-			} else {
-				// Not starting from 0: count initial crossing plus full loops
-				remaining := distance - startPos
-				boundaryCrossings = 1 + remaining / 100
-			}
-		} else {
-			// No wrapping
+		rawNewPos = startPos - distance
+	}
+
+	// Count how many times we pass through a multiple of 100
+	// Key insight: crossing from 99→0 or 0→99 means passing through a multiple of 100
+	var boundaryCrossings int
+
+	if direction == Right {
+		// Moving right: simple case
+		boundaryCrossings = rawNewPos/100 - startPos/100
+	} else {
+		// Moving left: need to handle negatives
+		if rawNewPos >= 0 {
+			// Still in positive range, no crossings
 			boundaryCrossings = 0
+		} else if startPos == 0 {
+			// Starting from 0 and going negative
+			// Only count full loops: -1 to -100 is 0 crossings, -101 to -200 is 1 crossing, etc.
+			boundaryCrossings = (-rawNewPos - 1) / 100
+		} else {
+			// Starting from positive, going negative
+			// We cross 0 once, then count additional full loops
+			// Each additional 100 steps in negative direction crosses 0 again
+			boundaryCrossings = 1 + (-rawNewPos) / 100
 		}
 	}
 
-	// Wrap around 0-99 range
-	s.position = ((s.position % 100) + 100) % 100
+	// Wrap position to 0-99 range
+	s.position = ((rawNewPos % 100) + 100) % 100
 
 	return boundaryCrossings
 }
